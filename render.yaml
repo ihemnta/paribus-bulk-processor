@@ -18,6 +18,9 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
 
+    dockerCommand: python -m scripts.run_worker --execute
+    numInstances: 1
+
     healthCheckPath: /openapi.json
 
     envVars:
@@ -27,10 +30,13 @@ services:
           property: connectionString
 
       - key: ENABLE_REAL_UPSTREAM_WRITES
-        value: "false"
+        value: "true"
 
       - key: UPSTREAM_BASE_URL
         value: https://hospital-directory.onrender.com
 
       - key: ADMIN_API_KEY
         sync: false
+      
+      - key: WORKER_POLL_SECONDS
+        value: "2"
