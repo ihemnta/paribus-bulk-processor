@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Keep the documented example configuration
+!.env.example
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+
+# Coverage
+.coverage
+htmlcov/
+
+# Local logs
+*.log
+.local
+
+#documents
+/docs
+/samples
+
+#scripts
+/scripts

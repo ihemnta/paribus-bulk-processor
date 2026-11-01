@@ -1,0 +1,39 @@
+# Stage 1: PostgreSQL and FastAPI only.
+# Add the dedicated background worker after deployment verification.
+
+databases:
+  - name: paribus-bulk-db
+    databaseName: paribus_bulk
+    user: paribus_bulk
+    plan: free
+    region: singapore
+
+services:
+  - type: web
+    name: paribus-bulk-api
+    runtime: docker
+    plan: free
+    region: singapore
+
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: >-
+      /bin/sh -c 'python -m alembic upgrade head &&
+      exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}'
+
+    healthCheckPath: /openapi.json
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: paribus-bulk-db
+          property: connectionString
+
+      - key: ENABLE_REAL_UPSTREAM_WRITES
+        value: "false"
+
+      - key: UPSTREAM_BASE_URL
+        value: https://hospital-directory.onrender.com
+
+      - key: ADMIN_API_KEY
+        sync: false
