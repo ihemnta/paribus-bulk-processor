@@ -1,5 +1,12 @@
-# Stage 1: PostgreSQL and FastAPI only.
-# Add the dedicated background worker after deployment verification.
+
+# Paribus Hospital Bulk Processing System
+# Render Blueprint
+#
+# Architecture:
+#   FastAPI Web Service --> PostgreSQL <-- Background Worker
+#                                             |
+#                                             v
+#                                      Hospital Directory API
 
 databases:
   - name: paribus-bulk-db
@@ -9,6 +16,10 @@ databases:
     region: singapore
 
 services:
+
+  # ============================================================
+  # SERVICE 1: FastAPI Web Application
+  # ============================================================
   - type: web
     name: paribus-bulk-api
     runtime: docker
@@ -18,8 +29,13 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
 
-    dockerCommand: python -m scripts.run_worker --execute
-    numInstances: 1
+    # IMPORTANT:
+    # Do not set dockerCommand here.
+    # The Dockerfile CMD runs:
+    #   1. python -m alembic upgrade head
+    #   2. uvicorn app.main:app
+    #
+    # Web services must listen on an HTTP port.
 
     healthCheckPath: /openapi.json
 
@@ -29,14 +45,54 @@ services:
           name: paribus-bulk-db
           property: connectionString
 
+      - key: UPSTREAM_BASE_URL
+        value: https://hospital-directory.onrender.com
+
       - key: ENABLE_REAL_UPSTREAM_WRITES
-        value: "true"
+        value: "false"
+
+      - key: ADMIN_API_KEY
+        sync: false
+
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  # ============================================================
+  # SERVICE 2: Dedicated Background Worker
+  # ============================================================
+  - type: worker
+    name: paribus-bulk-worker
+    runtime: docker
+    plan: 0.5c-512mb
+    region: singapore
+
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
+    numInstances: 1
+
+    # Override the Dockerfile's API command.
+    # This process polls PostgreSQL and processes queued batches.
+    # It does NOT listen on an HTTP port.
+    dockerCommand: python -m scripts.run_worker --execute
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: paribus-bulk-db
+          property: connectionString
 
       - key: UPSTREAM_BASE_URL
         value: https://hospital-directory.onrender.com
 
-      - key: ADMIN_API_KEY
-        sync: false
-      
+      # WARNING:
+      # Enables real hospital creation and activation.
+      # Secure the public upload endpoint before deployment.
+      - key: ENABLE_REAL_UPSTREAM_WRITES
+        value: "true"
+
       - key: WORKER_POLL_SECONDS
         value: "2"
+
+      - key: PYTHONUNBUFFERED
+        value: "1"
