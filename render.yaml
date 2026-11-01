@@ -28,6 +28,7 @@ services:
 
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    dockerCommand: python -m app.start_api
 
     # IMPORTANT:
     # Do not set dockerCommand here.
